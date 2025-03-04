@@ -16,35 +16,23 @@ void setup(){
   strokeWeight(5);
   stroke(orange);
   selectedColor = darkOrange;
-}//enf of setup ==========
+}//end of setup ==========
 
 void draw(){
   background(creamOrange);
   
-  
-  //buttons
-  if (dist(100,100,mouseX,mouseY) < 50){
-  stroke(white);
-  } else {
-    stroke(darkOrange);
-  }
-  
+   //buttons
+
+  tactile (100,100,50);
   fill(lightOrange);
   circle(100,100,100);
-  
-    if (dist(100,300,mouseX,mouseY) < 50){
-  stroke(white);
-  } else {
-    stroke(darkOrange);
-  }
+   
+  tactile (100,300,50);
   fill(mediumOrange);
   circle(100,300,100);
   
-    if (dist(100,500,mouseX,mouseY) < 50){
-  stroke(white);
-  } else {
-    stroke(darkOrange);
-  }
+  
+  tactile (100,500,50);
   fill(darkOrange);
   circle(100,500,100);
   
@@ -53,6 +41,16 @@ void draw(){
   fill(selectedColor);
   square(300,100,400);
 }
+  
+  void tactile (int x, int y, int r){
+        if (dist(x,y,mouseX,mouseY) < r){
+  stroke(white);
+  } else {
+    stroke(darkOrange);
+  }
+  }//end tactile
+  
+  
   
 void mouseReleased(){  
   //lightorange button
@@ -69,3 +67,6 @@ void mouseReleased(){
     selectedColor = darkOrange;
    }
 }  
+
+
+
