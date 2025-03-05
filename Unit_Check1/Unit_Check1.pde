@@ -23,18 +23,18 @@ void draw(){
   
    //buttons
 
-  tactile (100,100,50);
+  tactile (50,50,50);
   fill(lightOrange);
-  circle(100,100,100);
+  circle(50,50,100);
    
-  tactile (100,300,50);
+  tactile (150,50,50);
   fill(mediumOrange);
-  circle(100,300,100);
+  circle(150,50,100);
   
   
-  tactile (100,500,50);
+  tactile (250,50,50);
   fill(darkOrange);
-  circle(100,500,100);
+  circle(250,50,100);
   
   //indicator
   stroke(darkOrange);
@@ -54,19 +54,17 @@ void draw(){
   
 void mouseReleased(){  
   //lightorange button
-  if (dist(100,100,mouseX,mouseY) < 50){
+  if (dist(50,50,mouseX,mouseY) < 50){
     selectedColor = lightOrange;
   }
   
   //mediumOrange button
-  if (dist(100,300,mouseX,mouseY) < 50){
+  if (dist(150,50,mouseX,mouseY) < 50){
     selectedColor = mediumOrange;
   }
   //darkOrange button
-   if (dist(100,500,mouseX,mouseY) < 50){
+   if (dist(250,50,mouseX,mouseY) < 50){
     selectedColor = darkOrange;
    }
 }  
-
-
 
