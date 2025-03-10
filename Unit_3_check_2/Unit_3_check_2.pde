@@ -1,54 +1,71 @@
-color darkPurple = #230F2B;
-color pink       = #F21D41;
-color lightGreen = #EBEBBC;
-color medGreen   = #BCE3C5;
-color darkGreen  = #82B3AE;
-color red        = #F53500;
-color blue       = #0032F5;
+//Jason Zhao
+//mar, 3, 2025
 
-int toggle;
+color orange = #FA680D;
+color lightOrange  = #F0A14D;
+color creamOrange  = #F2BF89;
+color darkOrange   = #FF6905;
+color mediumOrange = #FF8705;
+color white        = #FFFFFF;
 
-void setup () {
+//variables for color selection 
+color selectedColor;
+
+void setup(){
   size(800, 600);
   strokeWeight(5);
-  textSize(30);
+  stroke(orange);
+  selectedColor = darkOrange;
+}//end of setup ==========
 
-  toggle = 1;
+void draw(){
+  background(creamOrange);
+  
+   //buttons
+
+  tactile (50,250,150);
+  fill(lightOrange);
+    rect(50, 50, 200, 100);
+   
+  tactile (250,50,150);
+  fill(mediumOrange);
+    rect(250, 50, 200, 100);
+  
+  
+  tactile (450,250,150);
+  fill(darkOrange);
+    rect(450, 50, 200, 100);
+  
+  //indicator
+  stroke(darkOrange);
+  fill(selectedColor);
+  square(160,175,400);
 }
-
-void draw() {
-  background(255);
-
-
-  fill(darkGreen);
-  stroke(lightGreen);
-  rect(50, 100, 200, 100);
   
-  
-  fill(red);
-  stroke(lightGreen);
-  rect(250, 100, 200, 100);
-  
-  
-  fill(darkGreen);
-  stroke(lightGreen);
-  rect(450, 100, 200, 100);
-
-  if (toggle > 0) {
-
-    guidelines();
+  void tactile (int x, int y, int r){
+        if (dist(x,y,mouseX,mouseY) < r){
+  stroke(white);
+  } else {
+    stroke(darkOrange);
   }
-}
-
-void mouseReleased() {
-  if (mouseX > 100 && mouseX < 300 && mouseY > 100 && mouseY < 200) {
-    toggle = toggle * -1;
+  }//end tactile
+  
+  
+  
+void mouseReleased(){  
+  //lightorange button
+  if (mouseX > 50 && mouseX < 250 && mouseY > 50 && mouseY < 200) {
+    selectedColor = lightOrange;
   }
-}
-
-void guidelines() {
-  fill(pink);
-  stroke(pink);
-  line(0, mouseY, width, mouseY);
-  line(mouseX, 0, mouseX, height);
-}
+  
+  //mediumOrange button
+ if (mouseX > 250 && mouseX < 450 && mouseY > 50 && mouseY < 200) {
+  
+    selectedColor = mediumOrange;
+  }
+  //darkOrange button
+  if (mouseX > 450 && mouseX < 650 && mouseY > 50 && mouseY < 200) {
+  
+    selectedColor = darkOrange;
+   }
+}  
