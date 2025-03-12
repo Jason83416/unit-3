@@ -25,8 +25,17 @@ void draw(){
   circle(sliderX,300,50);
 }
 
+void mouseDragged(){
+  
+}
+
 void mouseReleased(){
-  if(mouseX > 100 && mouseX <700){
+  controlSlider();
+}
+
+
+void controlSlider(){
+   if(mouseX > 100 && mouseX <700 && mouseY >275 && mouseY <325){
     sliderX = mouseX;
   }
 }
