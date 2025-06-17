@@ -1,274 +1,203 @@
-// ---------------------------------------------------------
-// Simplified Drawing Tool with Color Buttons, Stamps (Circle, Rect, Pine Tree),
-// Thickness Slider, and New/Save/Load
-// ---------------------------------------------------------
+// Simple Drawing App with Toolbar, Buttons, Slider, Stamps, and Save/Load
+// Jason Zhao – Programming 11
 
-PGraphics canvas; // Offscreen drawing surface
-color currentColor = color(0);
-float currentStrokeWeight = 3;
+int toolbarHeight = 100;        // Height of the top toolbar
 
-// We'll track the "stamp mode" with an integer instead of separate booleans:
-// 0 = no stamp (just drawing lines)
-// 1 = circle stamp
-// 2 = rectangle stamp
-// 3 = pine tree stamp
-int stampMode = 0;
+// Six preset colors
+color c1, c2, c3, c4, c5, c6;
+color currentColor;             // Currently selected drawing color
+float currentThickness = 5;     // Currently selected stroke weight (1..20)
 
-// Positions/sizes for toolbar elements
-int toolbarHeight = 100;
-int sliderX = 350, sliderY = 30, sliderW = 100;
-float sliderHandleX; // We'll track the handle's x position
+// Slider geometry
+float sliderX = 320, sliderY = 40, sliderW = 150;
 
-// Some constants for button geometry
-int btnSize = 30;
-int margin = 10;
-int colorCount = 6;
-color[] colors = {
-color(255,0,0), color(0,255,0), color(0,0,255),
-color(255,255,0), color(255,0,255), color(0,255,255)
-};
+// Stamp tool toggles
+boolean stampCircle = false;
+boolean stampRect   = false;
+
+// Saved drawing snapshot
+PImage savedImg;
 
 void setup() {
-size(800, 600);
-canvas = createGraphics(width, height);
-clearCanvas();
-// Initialize slider handle to match currentStrokeWeight in [1..20]
-sliderHandleX = map(currentStrokeWeight, 1, 20, sliderX, sliderX + sliderW);
+  size(800, 600);
+  background(255);  // White drawing area
+
+  // Define the six color buttons
+  c1 = color(255, 0, 0);    // Red
+  c2 = color(0, 255, 0);    // Green
+  c3 = color(0, 0, 255);    // Blue
+  c4 = color(255, 255, 0);  // Yellow
+  c5 = color(255, 0, 255);  // Magenta
+  c6 = color(0, 255, 255);  // Cyan
+
+  // Initialize brush settings
+  currentColor     = c1;
+  currentThickness = 5;
 }
 
 void draw() {
-background(220);
-drawToolbar();
-image(canvas, 0, toolbarHeight); // Show the offscreen canvas below the toolbar
+  // Draw the toolbar background
+  noStroke();
+  fill(220);
+  rect(0, 0, width, toolbarHeight);
+
+  // Draw all buttons, the slider, the indicator, and labels
+  drawButtons();
 }
 
-// -------------------------------------------------------------------------
-// MOUSE EVENTS
-// -------------------------------------------------------------------------
+// ——————————————————————————————————————————————————————————
+// Draw all UI controls in the toolbar
+// ——————————————————————————————————————————————————————————
+void drawButtons() {
+  // 1) Color buttons
+  circleButton(c1,  30, 30, 30);
+  circleButton(c2,  80, 30, 30);
+  circleButton(c3, 130, 30, 30);
+  circleButton(c4, 180, 30, 30);
+  circleButton(c5, 230, 30, 30);
+  circleButton(c6, 280, 30, 30);
+
+  // 2) Thickness slider track
+  stroke(0);
+  line(sliderX, sliderY, sliderX + sliderW, sliderY);
+
+  // 3) Slider handle (tactile circle)
+  float handleX = map(currentThickness, 1, 20, sliderX, sliderX + sliderW);
+  circleButton(color(150), handleX, sliderY, 16);
+
+  // 4) Indicator showing current color & thickness
+  stroke(0);
+  strokeWeight(currentThickness);
+  fill(currentColor);
+  ellipse(550, 30, 30, 30);
+  strokeWeight(1);
+
+  // 5) Stamp tool buttons (circle vs. rectangle)
+  circleButton(stampCircle ? color(150, 200, 255) : color(200),
+               650, 30, 30);
+  rectButton  (stampRect   ? color(150, 200, 255) : color(200),
+               685, 15, 30, 30);
+
+  // 6) New / Save / Load buttons
+  rectButton(color(200), 600, 60, 50, 20);
+  rectButton(color(200), 660, 60, 50, 20);
+  rectButton(color(200), 720, 60, 50, 20);
+
+  // Labels for New, Save, Load
+  fill(0);
+  textSize(12);
+  text("New",  600 + 25, 60 + 12);
+  text("Save", 660 + 25, 60 + 12);
+  text("Load", 720 + 25, 60 + 12);
+}
+
+// ——————————————————————————————————————————————————————————
+// Handle mouse clicks on toolbar controls
+// ——————————————————————————————————————————————————————————
 void mousePressed() {
-// If we clicked in the top toolbar area
-if (mouseY < toolbarHeight) {
-handleToolbarClick();
-} else {
-// If we clicked in the drawing area and we have a stamp selected
-if (stampMode > 0) {
-placeStamp(mouseX, mouseY);
-}
-}
+  if (mouseY < toolbarHeight) {
+    // Color buttons
+    if (overCircle(30, 30, 30))  { currentColor = c1; stampCircle = stampRect = false; }
+    if (overCircle(80, 30, 30))  { currentColor = c2; stampCircle = stampRect = false; }
+    if (overCircle(130,30, 30))  { currentColor = c3; stampCircle = stampRect = false; }
+    if (overCircle(180,30, 30))  { currentColor = c4; stampCircle = stampRect = false; }
+    if (overCircle(230,30, 30))  { currentColor = c5; stampCircle = stampRect = false; }
+    if (overCircle(280,30, 30))  { currentColor = c6; stampCircle = stampRect = false; }
+
+    // Recompute handle X locally
+    float hx = map(currentThickness, 1, 20, sliderX, sliderX + sliderW);
+    // Slider handle click
+    if (overCircle(hx, sliderY, 16)) {
+      float t = constrain((mouseX - sliderX) / sliderW, 0, 1);
+      currentThickness = lerp(1, 20, t);
+    }
+
+    // Stamp tool toggles
+    if (overCircle(650, 30, 30))      { stampCircle = !stampCircle; if (stampCircle) stampRect = false; }
+    if (overRect(685, 15, 30, 30))    { stampRect   = !stampRect;   if (stampRect)   stampCircle = false; }
+
+    // New / Save / Load
+    if (overRect(600, 60, 50, 20)) {
+      fill(255); noStroke();
+      rect(0, toolbarHeight, width, height - toolbarHeight);
+    }
+    if (overRect(660, 60, 50, 20)) {
+      savedImg = get(0, toolbarHeight, width, height - toolbarHeight);
+    }
+    if (overRect(720, 60, 50, 20) && savedImg != null) {
+      image(savedImg, 0, toolbarHeight);
+    }
+  }
 }
 
+
+// ——————————————————————————————————————————————————————————
+// Handle drawing or stamping when dragging below toolbar
+// ——————————————————————————————————————————————————————————
 void mouseDragged() {
-// If dragging in the toolbar region, maybe move the slider
-if (mouseY < toolbarHeight) {
-updateSliderHandle();
-}
-// Otherwise, if no stamp is active, draw lines
-else if (stampMode == 0) {
-canvas.beginDraw();
-canvas.stroke(currentColor);
-canvas.strokeWeight(currentStrokeWeight);
-canvas.line(pmouseX, pmouseY - toolbarHeight, mouseX, mouseY - toolbarHeight);
-canvas.endDraw();
-}
-}
-
-// -------------------------------------------------------------------------
-// TOOLBAR UI
-// -------------------------------------------------------------------------
-void drawToolbar() {
-// Toolbar background
-fill(200);
-noStroke();
-rect(0, 0, width, toolbarHeight);
-
-// 1) Draw color buttons
-for (int i=0; i<colorCount; i++) {
-float xPos = margin + i*(btnSize+margin);
-float yPos = margin;
-boolean hover = mouseOverRect(xPos, yPos, btnSize, btnSize);
-if (hover) { stroke(0); strokeWeight(2); } else { noStroke(); }
-fill(colors[i]);
-rect(xPos, yPos, btnSize, btnSize);
+  if (mouseY > toolbarHeight) {
+    // Freehand “squiggly” drawing
+    if (!stampCircle && !stampRect) {
+      stroke(currentColor);
+      strokeWeight(currentThickness);
+      line(pmouseX, pmouseY, mouseX, mouseY);
+    }
+    // Circle stamp
+    else if (stampCircle) {
+      noStroke();
+      fill(currentColor);
+      float s = currentThickness * 5;
+      ellipse(mouseX, mouseY, s, s);
+    }
+    // Rectangle stamp
+    else if (stampRect) {
+      noStroke();
+      fill(currentColor);
+      float s = currentThickness * 5;
+      rect(mouseX - s/2, mouseY - s/2, s, s);
+    }
+  }
 }
 
-// 2) Draw circle, rect, pine tree buttons
-drawStampButton(210, "Circle", 1, stampMode==1);
-drawStampButton(250, "Rect", 2, stampMode==2);
-drawStampButton(width - 40, "Pine", 3, stampMode==3);
-
-// 3) Thickness slider
-stroke(0); strokeWeight(1);
-line(sliderX, sliderY + 5, sliderX + sliderW, sliderY + 5);
-float handleR = 8;
-fill(mouseOverCircle(sliderHandleX, sliderY+5, handleR) ? 150 : 100);
-noStroke();
-ellipse(sliderHandleX, sliderY+5, 2*handleR, 2*handleR);
-fill(0);
-text("Thickness: " + nf(currentStrokeWeight, 1, 1), sliderX + sliderW + 15, sliderY + 8);
-
-// 4) Indicator shape (shows current color and thickness)
-stroke(0);
-strokeWeight(currentStrokeWeight);
-fill(currentColor);
-ellipse(420, 25, 25, 25);
-
-// 5) New, Save, Load
-drawTextButton(500, "New");
-drawTextButton(550, "Save");
-drawTextButton(600, "Load");
+// ——————————————————————————————————————————————————————————
+// Draws a tactile circular button
+// ——————————————————————————————————————————————————————————
+void circleButton(color col, float x, float y, float d) {
+  if (overCircle(x, y, d)) {
+    stroke(0);
+    strokeWeight(2);
+  } else {
+    noStroke();
+  }
+  fill(col);
+  ellipse(x, y, d, d);
 }
 
-// Helper for drawing a text-based button
-void drawTextButton(float x, String label) {
-boolean hov = mouseOverRect(x, 10, 40, 30);
-if (hov) { stroke(0); strokeWeight(2); } else { noStroke(); }
-fill(200);
-rect(x, 10, 40, 30);
-fill(0);
-text(label, x+8, 30);
+// ——————————————————————————————————————————————————————————
+// Draws a tactile rectangular button
+// ——————————————————————————————————————————————————————————
+void rectButton(color col, float x, float y, float w, float h) {
+  if (overRect(x, y, w, h)) {
+    stroke(0);
+    strokeWeight(2);
+  } else {
+    noStroke();
+  }
+  fill(col);
+  rect(x, y, w, h);
 }
 
-// Helper for drawing stamp toggle buttons
-void drawStampButton(float x, String label, int modeValue, boolean on) {
-boolean hov = mouseOverRect(x, 10, btnSize, btnSize);
-stroke(0); strokeWeight(hov ? 2 : 1);
-fill(on ? color(180, 200, 255) : 220);
-rect(x, 10, btnSize, btnSize);
-
-// Just a simple label in black for clarity
-fill(0);
-textSize(10);
-textAlign(CENTER, CENTER);
-text(label, x + btnSize/2, 10 + btnSize/2);
-textAlign(LEFT, BASELINE);
+// ——————————————————————————————————————————————————————————
+// Utility: is mouse over a circle?
+// ——————————————————————————————————————————————————————————
+boolean overCircle(float cx, float cy, float d) {
+  return dist(mouseX, mouseY, cx, cy) < d/2;
 }
 
-// -------------------------------------------------------------------------
-// TOOLBAR CLICK HANDLER
-// -------------------------------------------------------------------------
-void handleToolbarClick() {
-// 1) Check color buttons
-for (int i=0; i<colorCount; i++) {
-float xPos = margin + i*(btnSize+margin);
-float yPos = margin;
-if (mouseOverRect(xPos, yPos, btnSize, btnSize)) {
-currentColor = colors[i];
-stampMode = 0; // turning off any stamp
-return;
-}
-}
-
-// 2) Check stamp buttons
-if (mouseOverRect(210, 10, btnSize, btnSize)) {
-stampMode = (stampMode == 1) ? 0 : 1; // toggle circle
-return;
-}
-if (mouseOverRect(250, 10, btnSize, btnSize)) {
-stampMode = (stampMode == 2) ? 0 : 2; // toggle rect
-return;
-}
-if (mouseOverRect(width - 40, 10, btnSize, btnSize)) {
-stampMode = (stampMode == 3) ? 0 : 3; // toggle pine
-return;
-}
-
-// 3) Check New, Save, Load
-if (mouseOverRect(500, 10, 40, 30)) { clearCanvas(); return; }
-if (mouseOverRect(550, 10, 40, 30)) { saveCanvas(); return; }
-if (mouseOverRect(600, 10, 40, 30)) { loadCanvas(); return; }
-
-// 4) Possibly the slider handle
-if (mouseOverCircle(sliderHandleX, sliderY+5, 8)) {
-updateSliderHandle();
-}
-}
-
-// -------------------------------------------------------------------------
-// STAMPS
-// -------------------------------------------------------------------------
-void placeStamp(float mx, float my) {
-canvas.beginDraw();
-canvas.noStroke();
-canvas.fill(currentColor);
-float yAdjusted = my - toolbarHeight;
-
-// Circle
-if (stampMode == 1) {
-canvas.ellipse(mx, yAdjusted, currentStrokeWeight*5, currentStrokeWeight*5);
-}
-// Rectangle
-else if (stampMode == 2) {
-canvas.rectMode(CENTER);
-canvas.rect(mx, yAdjusted, currentStrokeWeight*5, currentStrokeWeight*5);
-canvas.rectMode(CORNER);
-}
-// Pine Tree
-else if (stampMode == 3) {
-// trunk
-canvas.fill(102, 51, 0);
-float trunkW = currentStrokeWeight*1.5;
-float trunkH = currentStrokeWeight*3;
-canvas.rectMode(CENTER);
-canvas.rect(mx, yAdjusted + trunkH/2, trunkW, trunkH);
-
-// pine needles (using currentColor)
-canvas.fill(currentColor);
-// top triangle
-canvas.triangle(mx, yAdjusted - (currentStrokeWeight*4),
-mx - (currentStrokeWeight*2.5), yAdjusted,
-mx + (currentStrokeWeight*2.5), yAdjusted);
-// larger triangle below
-canvas.triangle(mx, yAdjusted - (currentStrokeWeight*8),
-mx - (currentStrokeWeight*4), yAdjusted - (currentStrokeWeight*4),
-mx + (currentStrokeWeight*4), yAdjusted - (currentStrokeWeight*4));
-canvas.rectMode(CORNER);
-}
-canvas.endDraw();
-}
-
-// -------------------------------------------------------------------------
-// SLIDER
-// -------------------------------------------------------------------------
-void updateSliderHandle() {
-// Constrain the mouse to the slider range if near slider
-if (mouseY < toolbarHeight) {
-sliderHandleX = constrain(mouseX, sliderX, sliderX+sliderW);
-currentStrokeWeight = map(sliderHandleX, sliderX, sliderX+sliderW, 1, 20);
-}
-}
-
-// -------------------------------------------------------------------------
-// HELPERS
-// -------------------------------------------------------------------------
-boolean mouseOverRect(float x, float y, float w, float h) {
-return (mouseX >= x && mouseX <= x+w && mouseY >= y && mouseY <= y+h);
-}
-
-boolean mouseOverCircle(float cx, float cy, float r) {
-float dx = mouseX - cx;
-float dy = mouseY - cy;
-return (dx*dx + dy*dy <= r*r);
-}
-
-void clearCanvas() {
-canvas.beginDraw();
-canvas.background(255);
-canvas.endDraw();
-}
-
-void saveCanvas() {
-canvas.save("myDrawing.png");
-println("Canvas saved: myDrawing.png");
-}
-
-void loadCanvas() {
-PImage loaded = loadImage("myDrawing.png");
-if (loaded != null) {
-canvas.beginDraw();
-canvas.image(loaded, 0, 0);
-canvas.endDraw();
-println("Canvas loaded: myDrawing.png");
-} else {
-println("No image found to load!");
-}
+// ——————————————————————————————————————————————————————————
+// Utility: is mouse over a rectangle?
+// ——————————————————————————————————————————————————————————
+boolean overRect(float x, float y, float w, float h) {
+  return mouseX >= x && mouseX <= x + w &&
+         mouseY >= y && mouseY <= y + h;
 }
