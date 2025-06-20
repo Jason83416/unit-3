@@ -1,219 +1,156 @@
-PGraphics drawingCanvas;
 
-// Five color variables (pick any 5)
-color c1 = color(255, 0, 0); // Red
-color c2 = color(0, 255, 0); // Green
-color c3 = color(0, 0, 255); // Blue
-color c4 = color(255, 255, 0); // Yellow
-color c5 = color(255, 0, 255); // Magenta
+// Jason Zhao – Programming 11
 
-// Current color & thickness
+int toolbarWidth = 100;
+
+color c1, c2, c3, c4, c5, c6;
 color currentColor;
-float currentThickness;
+float currentThickness = 5;
 
-// Slider position
-float sliderX = 300; // left edge of slider track
-float sliderY = 30;
-float sliderWidth = 100;
-float sliderHeight = 10;
-float sliderHandleX; // The circle handle's x position
+float sliderX = 50, sliderY = 280, sliderH = 150;
+
+int currentTool = 0;
+
+PImage savedImg;
 
 void setup() {
-size(800, 600);
+  size(800, 600);
+  background(255);
 
-// Create an offscreen canvas for drawing
-drawingCanvas = createGraphics(width, height);
-// Clear it to white
-drawingCanvas.beginDraw();
-drawingCanvas.background(255);
-drawingCanvas.endDraw();
+  c1 = color(255, 0, 0);
+  c2 = color(0, 255, 0);
+  c3 = color(0, 0, 255);
+  c4 = color(255, 255, 0);
+  c5 = color(255, 0, 255);
+  c6 = color(0, 255, 255);
 
-// Default color & thickness
-currentColor = c1; // Start with red
-currentThickness = 3;
-
-// Position slider handle according to current thickness
-// We'll allow thickness from 1..20
-sliderHandleX = map(currentThickness, 1, 20, sliderX, sliderX + sliderWidth);
+  currentColor = c1;
+  currentThickness = 5;
 }
 
 void draw() {
-// Clear the background
-background(220);
+  // Draw cool gradient side toolbar
+  for (int i = 0; i < height; i++) {
+    float t = map(i, 0, height, 0, 1);
+    stroke(lerpColor(color(0, 120, 255), color(180, 0, 255), t));
+    line(0, i, toolbarWidth, i);
+  }
 
-// Draw the top toolbar
-drawToolbar();
-
-// Show the offscreen canvas for lines
-image(drawingCanvas, 0, toolbarHeight);
-
-// Optional instructions
-fill(0);
-textSize(12);
-text("Click a color, adjust thickness, then drag to draw below toolbar.", 10, height - 10);
+  drawButtons();
 }
 
-// ---------------------------------------------------------
-// MOUSE EVENTS
-// ---------------------------------------------------------
+void drawButtons() {
+  circleButton(c1, 50,  40, 30);
+  circleButton(c2, 50,  90, 30);
+  circleButton(c3, 50, 140, 30);
+  circleButton(c4, 50, 190, 30);
+  circleButton(c5, 50, 240, 30);
+  circleButton(c6, 50, 290, 30);
+
+  stroke(0);
+  line(sliderX, sliderY, sliderX, sliderY + sliderH);
+  float handleY = map(currentThickness, 1, 20, sliderY + sliderH, sliderY);
+  circleButton(color(150), sliderX, handleY, 16);
+
+  stroke(0);
+  strokeWeight(currentThickness);
+  fill(currentColor);
+  ellipse(50, 460, 30, 30);
+  strokeWeight(1);
+
+  circleButton(currentTool == 1 ? color(150, 200, 255) : color(200), 50, 510, 30);
+  rectButton(currentTool == 2 ? color(150, 200, 255) : color(200), 35, 545, 30, 30);
+
+  rectButton(color(200), 20, 600 - 90, 60, 20);
+  rectButton(color(200), 20, 600 - 60, 60, 20);
+  rectButton(color(200), 20, 600 - 30, 60, 20);
+
+  fill(0);
+  textSize(12);
+  textAlign(CENTER, CENTER);
+  text("New",  50, 600 - 80);
+  text("Save", 50, 600 - 50);
+  text("Load", 50, 600 - 20);
+}
+
 void mousePressed() {
-// If mouse is in the toolbar region, check color buttons or slider
-if (mouseY < toolbarHeight) {
-checkColorButtons();
-checkSlider(); // see if the slider handle was clicked
-}
+  if (mouseX < toolbarWidth) {
+    if (overCircle(50,  40, 30))  { currentColor = c1; currentTool = 0; }
+    if (overCircle(50,  90, 30))  { currentColor = c2; currentTool = 0; }
+    if (overCircle(50, 140, 30))  { currentColor = c3; currentTool = 0; }
+    if (overCircle(50, 190, 30))  { currentColor = c4; currentTool = 0; }
+    if (overCircle(50, 240, 30))  { currentColor = c5; currentTool = 0; }
+    if (overCircle(50, 290, 30))  { currentColor = c6; currentTool = 0; }
+
+    if (mouseX >= sliderX - 8 && mouseX <= sliderX + 8 &&
+        mouseY >= sliderY && mouseY <= sliderY + sliderH) {
+      float t = constrain((sliderY + sliderH - mouseY) / sliderH, 0, 1);
+      currentThickness = lerp(1, 20, t);
+    }
+
+    if (overCircle(50, 510, 30))  currentTool = (currentTool == 1) ? 0 : 1;
+    if (overRect(35, 545, 30, 30)) currentTool = (currentTool == 2) ? 0 : 2;
+
+    if (overRect(20, 600 - 90, 60, 20)) {
+      fill(255); noStroke();
+      rect(toolbarWidth, 0, width - toolbarWidth, height);
+    }
+    if (overRect(20, 600 - 60, 60, 20)) {
+      savedImg = get(toolbarWidth, 0, width - toolbarWidth, height);
+    }
+    if (overRect(20, 600 - 30, 60, 20) && savedImg != null) {
+      image(savedImg, toolbarWidth, 0);
+    }
+  }
 }
 
 void mouseDragged() {
-// If dragging in the toolbar, might move the slider
-if (mouseY < toolbarHeight) {
-updateSliderHandle();
-}
-// Otherwise, draw lines in the canvas region
-else {
-drawingCanvas.beginDraw();
-drawingCanvas.stroke(currentColor);
-drawingCanvas.strokeWeight(currentThickness);
-// We'll offset by toolbarHeight so lines align correctly
-drawingCanvas.line(pmouseX, pmouseY - toolbarHeight,
-mouseX, mouseY - toolbarHeight);
-drawingCanvas.endDraw();
-}
-}
-
-// ---------------------------------------------------------
-// TOOLBAR
-// ---------------------------------------------------------
-void drawToolbar() {
-// Background of the toolbar
-fill(200);
-noStroke();
-rect(0, 0, width, toolbarHeight);
-
-// 1) Draw 5 color buttons
-// We'll position them at x=10,50,90,130,170 all at y=10, each w=30,h=30
-
-// c1
-if (mouseOverRect(10, 10, 30, 30)) {
-stroke(0); strokeWeight(2);
-} else {
-noStroke();
-}
-fill(c1);
-rect(10, 10, 30, 30);
-
-// c2
-if (mouseOverRect(50, 10, 30, 30)) {
-stroke(0); strokeWeight(2);
-} else {
-noStroke();
-}
-fill(c2);
-rect(50, 10, 30, 30);
-
-// c3
-if (mouseOverRect(90, 10, 30, 30)) {
-stroke(0); strokeWeight(2);
-} else {
-noStroke();
-}
-fill(c3);
-rect(90, 10, 30, 30);
-
-// c4
-if (mouseOverRect(130, 10, 30, 30)) {
-stroke(0); strokeWeight(2);
-} else {
-noStroke();
-}
-fill(c4);
-rect(130, 10, 30, 30);
-
-// c5
-if (mouseOverRect(170, 10, 30, 30)) {
-stroke(0); strokeWeight(2);
-} else {
-noStroke();
-}
-fill(c5);
-rect(170, 10, 30, 30);
-
-// 2) Slider: a line + a handle circle
-stroke(0);
-strokeWeight(1);
-line(sliderX, sliderY + sliderHeight/2, sliderX + sliderWidth, sliderY + sliderHeight/2);
-// handle
-float handleRadius = 8;
-boolean hover = mouseOverCircle(sliderHandleX, sliderY + sliderHeight/2, handleRadius);
-fill(hover ? 150 : 100);
-noStroke();
-ellipse(sliderHandleX, sliderY + sliderHeight/2, handleRadius*2, handleRadius*2);
-
-// 3) Indicator (small circle) showing current color & thickness
-stroke(0);
-strokeWeight(currentThickness);
-fill(currentColor);
-ellipse(420, 25, 25, 25);
-
-// Label for thickness
-fill(0);
-textSize(12);
-text("Thickness: " + nf(currentThickness,1,1), sliderX + sliderWidth + 15, sliderY + 5);
+  if (mouseX < toolbarWidth) {
+    if (mouseX >= sliderX - 8 && mouseX <= sliderX + 8 &&
+        mouseY >= sliderY && mouseY <= sliderY + sliderH) {
+      float t = constrain((sliderY + sliderH - mouseY) / sliderH, 0, 1);
+      currentThickness = lerp(1, 20, t);
+    }
+  } else {
+    if (currentTool == 0) {
+      stroke(currentColor);
+      strokeWeight(currentThickness);
+      line(pmouseX, pmouseY, mouseX, mouseY);
+    } else {
+      noStroke();
+      fill(currentColor);
+      float s = currentThickness * 5;
+      if (currentTool == 1) ellipse(mouseX, mouseY, s, s);
+      else if (currentTool == 2) rect(mouseX - s/2, mouseY - s/2, s, s);
+    }
+  }
 }
 
-// ---------------------------------------------------------
-// CHECKS
-// ---------------------------------------------------------
-void checkColorButtons() {
-// c1
-if (mouseOverRect(10, 10, 30, 30)) {
-currentColor = c1;
-}
-// c2
-if (mouseOverRect(50, 10, 30, 30)) {
-currentColor = c2;
-}
-// c3
-if (mouseOverRect(90, 10, 30, 30)) {
-currentColor = c3;
-}
-// c4
-if (mouseOverRect(130, 10, 30, 30)) {
-currentColor = c4;
-}
-// c5
-if (mouseOverRect(170, 10, 30, 30)) {
-currentColor = c5;
-}
+void circleButton(color col, float x, float y, float d) {
+  if (overCircle(x, y, d)) {
+    stroke(0); strokeWeight(2);
+  } else {
+    noStroke();
+  }
+  fill(col);
+  ellipse(x, y, d, d);
 }
 
-void checkSlider() {
-// If mouse is over the slider handle, we'll move it in mouseDragged
-float r = 8;
-if (mouseOverCircle(sliderHandleX, sliderY + sliderHeight/2, r)) {
-updateSliderHandle();
-}
-}
-
-void updateSliderHandle() {
-if (mouseY < toolbarHeight) {
-// Constrain handle to the slider track
-sliderHandleX = constrain(mouseX, sliderX, sliderX + sliderWidth);
-// Map that position to thickness [1..20]
-currentThickness = map(sliderHandleX, sliderX, sliderX + sliderWidth, 1, 20);
-}
+void rectButton(color col, float x, float y, float w, float h) {
+  if (overRect(x, y, w, h)) {
+    stroke(0); strokeWeight(2);
+  } else {
+    noStroke();
+  }
+  fill(col);
+  rect(x, y, w, h);
 }
 
-// ---------------------------------------------------------
-// HELPER FUNCTIONS
-// ---------------------------------------------------------
-boolean mouseOverRect(float x, float y, float w, float h) {
-return (mouseX >= x && mouseX <= x+w &&
-mouseY >= y && mouseY <= y+h);
+boolean overCircle(float cx, float cy, float d) {
+  return dist(mouseX, mouseY, cx, cy) < d/2;
 }
 
-boolean mouseOverCircle(float cx, float cy, float r) {
-float dx = mouseX - cx;
-float dy = mouseY - cy;
-return (dx*dx + dy*dy <= r*r);
-}
+boolean overRect(float x, float y, float w, float h) {
+  return mouseX >= x && mouseX <= x + w &&
+         mouseY >= y && mouseY <= y + h;
+}   
